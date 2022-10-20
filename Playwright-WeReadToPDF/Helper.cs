@@ -52,7 +52,7 @@ public class Helper
         await page.ClickAsync("li.chapterItem:nth-child(2)");
 
         var bookName = page.TextContentAsync("span.readerTopBar_title_link");
-        Console.WriteLine($"ready to scan {bookName}");
+        Console.WriteLine($"ready to scan {bookName.Result}");
 
         var pageIndex = 1;
         while (true)
@@ -63,13 +63,18 @@ public class Helper
             Console.WriteLine($"scanning chapter{chapter}");
 
             await CheckAllImageLoaded();
+
+            await page.Locator(".renderTargetContainer").ScreenshotAsync(new() { Path = "/screenShots/01.png",  });
+
+            pageIndex++;
         }
 
     }
 
     public async Task<bool> CheckAllImageLoaded()
     {
-        var unCheckedImg = (List<IElementHandle?>)await page.QuerySelectorAllAsync("img.wr_absolute");
+        var unCheckedImg = await page.QuerySelectorAllAsync("img.wr_absolute");
+        var unCheckImgList = unCheckedImg.ToList();
         if (unCheckedImg == null || unCheckedImg.Count == 0)
         {
             Console.WriteLine("all img loaded");
@@ -79,12 +84,12 @@ public class Helper
         for (int i = 0; i < 100; i++)
         {
             await page.WaitForTimeoutAsync(50);
-            foreach (var img in unCheckedImg)
+            foreach (var img in unCheckImgList)
             {
                 var prop = img.GetPropertyAsync("complete");
-                unCheckedImg.Remove(img);
+                unCheckImgList.Remove(img);
             }
-            if (unCheckedImg.Count == 0)
+            if (unCheckImgList.Count == 0)
             {
                 Console.WriteLine("all img loaded");
                 return true;
@@ -94,4 +99,10 @@ public class Helper
         Console.WriteLine("all img not loaded");
         return false;
     }
+
+    public async Task ScreenShotFullContent()
+    {
+
+    }
+
 }
