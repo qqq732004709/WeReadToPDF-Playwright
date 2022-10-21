@@ -9,3 +9,4 @@ Playwright
 playwright 负责截取书籍每页图片，通过opencv二值化后存储为PDF
 
 ## 参考
+https://github.com/Algebra-FUN/WeReadScan
