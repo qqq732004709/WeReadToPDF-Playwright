@@ -17,7 +17,7 @@ public class Helper
         try
         {
             var loginBtn = await page.WaitForSelectorAsync("button.navBar_link_Login", new() { State = WaitForSelectorState.Visible });
-            await loginBtn.ClickAsync();
+            await loginBtn?.ClickAsync();
 
             var waitTurns = 15;
             for (int i = 0; i < waitTurns; i++)
@@ -34,19 +34,22 @@ public class Helper
             }
         }
         catch (Exception)
-        {
+        { 
             throw new Exception("Login Time Out!");
         }
     }
 
-    public async Task SaveAsPDF(string bookUrl)
+    public async Task SaveAsPdf(string bookUrl)
     {
-        if (bookUrl.IndexOf("weread.qq.com/web/reader") < 0)
+        if (bookUrl.IndexOf("weread.qq.com/web/reader", StringComparison.Ordinal) < 0)
         {
             throw new Exception("Wrong Url");
         }
 
         await page.GotoAsync(bookUrl);
+
+        //打开日间模式
+        await TurnOnLight();
 
         await page.ClickAsync("button.catalog");
         await page.ClickAsync("li.chapterItem:nth-child(2)");
@@ -65,17 +68,24 @@ public class Helper
             await CheckAllImageLoaded();
 
             await page.Locator(".renderTargetContainer").ScreenshotAsync(new() { Path = "/screenShots/01.png",  });
-
+            await page.PdfAsync(new() { Path = "page.pdf" });
             pageIndex++;
         }
 
+    }
+
+    public async Task TurnOnLight()
+    {
+        await page.WaitForTimeoutAsync(300);
+        await page.ClickAsync("button.readerControls_item.white");
+        await page.WaitForTimeoutAsync(300);
     }
 
     public async Task<bool> CheckAllImageLoaded()
     {
         var unCheckedImg = await page.QuerySelectorAllAsync("img.wr_absolute");
         var unCheckImgList = unCheckedImg.ToList();
-        if (unCheckedImg == null || unCheckedImg.Count == 0)
+        if (unCheckedImg.Count == 0)
         {
             Console.WriteLine("all img loaded");
             return true;
