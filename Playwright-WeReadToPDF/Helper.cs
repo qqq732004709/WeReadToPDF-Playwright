@@ -71,6 +71,8 @@ public class Helper
             await CheckAllImageLoaded();
 
             var pngName = $"{bookName.Trim()}/{chapter.Trim()}_{pageIndex}";
+
+            await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
             await ScreenShotFullContent(pngName);
             pngNameList.Add(pngName);
             Console.WriteLine($"save chapter scan {pngName}");
@@ -131,21 +133,25 @@ public class Helper
             return true;
         }
 
-        await page.WaitForTimeoutAsync(unCheckedImg.Count * 50);
-        //for (int i = 0; i < 100; i++)
-        //{
-        //    await page.WaitForTimeoutAsync(50);
-        //    foreach (var img in unCheckImgList)
-        //    {
-        //        var prop = img.GetPropertyAsync("complete");
-        //        unCheckImgList.Remove(img);
-        //    }
-        //    if (unCheckImgList.Count == 0)
-        //    {
-        //        Console.WriteLine("all img loaded");
-        //        return true;
-        //    }
-        //}
+        for (int i = 0; i < 20; i++)
+        {
+            var allImgLoaded = await page.EvaluateAsync<bool>(@"()=>{                
+                let images = document.querySelectorAll('img.wr_absolute');
+                for(let i = 0; i < images.length; i++){
+                    if(!images[i].complete){
+                        return false;
+                    }
+                }
+                return true;
+            }");
+
+            if (allImgLoaded)
+            {
+                Console.WriteLine("all img loaded");
+                return true;
+            }
+            await page.WaitForTimeoutAsync(500);
+        }
 
         Console.WriteLine("all img not loaded");
         return false;
@@ -153,16 +159,8 @@ public class Helper
 
     public async Task ScreenShotFullContent(string pngName)
     {
-        //var renderTargetContainer = page.Locator(".renderTargetContainer");
-        //int height = Convert.ToInt32(await renderTargetContainer.GetAttributeAsync("offsetHeight"));
-        //height += Convert.ToInt32(await renderTargetContainer.GetAttributeAsync("offsetTop"));
-        //var width = await page.EvaluateAsync<int>("window.outerWidth");
-        //await page.SetViewportSizeAsync(width, height);
-        //await page.WaitForTimeoutAsync(1000);
-
-        var content = await page.WaitForSelectorAsync(".app_content", new() { Timeout = 1000 * 3 });
         Directory.CreateDirectory(Path.GetDirectoryName($"{pngName}.png"));
-        await content.ScreenshotAsync(new() { Path = $"{pngName}.png" });
+        await page.ScreenshotAsync(new() { Path = $"{pngName}.png" , FullPage = true});
     }
 
     public void ConvertImgToPdf(string fileName, List<string> imgList)
