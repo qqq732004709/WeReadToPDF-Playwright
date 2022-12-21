@@ -1,4 +1,6 @@
 ﻿global using Microsoft.Playwright;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
 
 namespace Playwright_WeReadToPDF;
 public class Helper
@@ -34,7 +36,7 @@ public class Helper
             }
         }
         catch (Exception)
-        { 
+        {
             throw new Exception("Login Time Out!");
         }
     }
@@ -58,6 +60,7 @@ public class Helper
         Console.WriteLine($"ready to scan {bookName.Result}");
 
         var pageIndex = 1;
+        var pngNameList = new List<string>();
         while (true)
         {
             Thread.Sleep(500);
@@ -67,11 +70,47 @@ public class Helper
 
             await CheckAllImageLoaded();
 
-            await page.Locator(".renderTargetContainer").ScreenshotAsync(new() { Path = "/screenShots/01.png",  });
-            await page.PdfAsync(new() { Path = "page.pdf" });
-            pageIndex++;
+            var pngName = $"{bookName}/{chapter}_{pageIndex}";
+            await ScreenShotFullContent(pngName);
+            pngNameList.Add(pngName);
+            Console.WriteLine($"save chapter scan {pngName}");
+
+            try
+            {
+                var readerFooter = await page.WaitForSelectorAsync(".readerFooter_button,.readerFooter_ending");
+                var readerFooterClass = await readerFooter.GetAttributeAsync("class");
+                if (readerFooterClass.Contains("ending"))
+                {
+                    break;
+                }
+
+                var nextBtnText = (await readerFooter.TextContentAsync()).Trim();
+
+                if (nextBtnText == "下一页")
+                {
+                    Console.WriteLine("go to next page");
+                    pageIndex++;
+                }
+                else if (nextBtnText == "下一章")
+                {
+                    Console.WriteLine("go to next chapter");
+                    pageIndex = 1;
+                }
+                else
+                {
+                    throw new Exception("Unexpected Exception");
+                }
+
+                await readerFooter.ClickAsync();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
         }
 
+        Console.WriteLine("pdf converting");
     }
 
     public async Task TurnOnLight()
@@ -110,9 +149,30 @@ public class Helper
         return false;
     }
 
-    public async Task ScreenShotFullContent()
+    public async Task ScreenShotFullContent(string pngName)
     {
+        var renderTargetContainer = page.Locator(".renderTargetContainer");
+        int height = Convert.ToInt32(await renderTargetContainer.GetAttributeAsync("offsetHeight"));
+        height += Convert.ToInt32(await renderTargetContainer.GetAttributeAsync("offsetTop"));
+        var width = await page.EvaluateAsync<int>("window.outerWidth");
+        await page.SetViewportSizeAsync(width, height);
+        await page.WaitForTimeoutAsync(1000);
 
+        var content = await page.WaitForSelectorAsync(".app_content", new() { Timeout = 1000 * 3 });
+        var screenShot = await content.ScreenshotAsync();
+        File.WriteAllBytes($"{pngName}.png", screenShot);
     }
 
+    public void ConvertImgToPdf(List<string> imgList)
+    {
+        Document document = new Document();
+        PdfWriter.GetInstance(document, new FileStream("images.pdf", FileMode.Create));
+        document.Open();
+
+        foreach (var img in imgList)
+        {
+            var image = Image.GetInstance(img);
+            document.Add(image);
+        }
+    }
 }
