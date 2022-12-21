@@ -41,7 +41,7 @@ public class Helper
         }
     }
 
-    public async Task SaveAsPdf(string bookUrl)
+    public async Task SaveAsPdf(string bookUrl, string saveAt = ".")
     {
         if (bookUrl.IndexOf("weread.qq.com/web/reader", StringComparison.Ordinal) < 0)
         {
@@ -56,8 +56,8 @@ public class Helper
         await page.ClickAsync("button.catalog");
         await page.ClickAsync("li.chapterItem:nth-child(2)");
 
-        var bookName = page.TextContentAsync("span.readerTopBar_title_link");
-        Console.WriteLine($"ready to scan {bookName.Result}");
+        var bookName = await page.TextContentAsync("span.readerTopBar_title_link");
+        Console.WriteLine($"ready to scan {bookName}");
 
         var pageIndex = 1;
         var pngNameList = new List<string>();
@@ -70,7 +70,7 @@ public class Helper
 
             await CheckAllImageLoaded();
 
-            var pngName = $"{bookName}/{chapter}_{pageIndex}";
+            var pngName = $"{bookName.Trim()}/{chapter.Trim()}_{pageIndex}";
             await ScreenShotFullContent(pngName);
             pngNameList.Add(pngName);
             Console.WriteLine($"save chapter scan {pngName}");
@@ -111,6 +111,7 @@ public class Helper
         }
 
         Console.WriteLine("pdf converting");
+        ConvertImgToPdf($"{saveAt}/{bookName}", pngNameList);
     }
 
     public async Task TurnOnLight()
@@ -159,14 +160,14 @@ public class Helper
         await page.WaitForTimeoutAsync(1000);
 
         var content = await page.WaitForSelectorAsync(".app_content", new() { Timeout = 1000 * 3 });
-        var screenShot = await content.ScreenshotAsync();
-        File.WriteAllBytes($"{pngName}.png", screenShot);
+        Directory.CreateDirectory(Path.GetDirectoryName($"{pngName}.png"));
+        await content.ScreenshotAsync(new() {  Path = $"{pngName}.png" });
     }
 
-    public void ConvertImgToPdf(List<string> imgList)
+    public void ConvertImgToPdf(string fileName, List<string> imgList)
     {
         Document document = new Document();
-        PdfWriter.GetInstance(document, new FileStream("images.pdf", FileMode.Create));
+        PdfWriter.GetInstance(document, new FileStream($"{fileName}.pdf", FileMode.Create));
         document.Open();
 
         foreach (var img in imgList)
@@ -174,5 +175,7 @@ public class Helper
             var image = Image.GetInstance(img);
             document.Add(image);
         }
+
+        document.Close();
     }
 }
