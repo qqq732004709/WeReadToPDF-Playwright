@@ -77,7 +77,7 @@ public class Helper
 
             try
             {
-                var readerFooter = await page.WaitForSelectorAsync(".readerFooter_button,.readerFooter_ending");
+                var readerFooter = await page.WaitForSelectorAsync(".readerFooter_button,.readerFooter_ending", new() { State = WaitForSelectorState.Visible });
                 var readerFooterClass = await readerFooter.GetAttributeAsync("class");
                 if (readerFooterClass.Contains("ending"))
                 {
@@ -101,7 +101,7 @@ public class Helper
                     throw new Exception("Unexpected Exception");
                 }
 
-                await readerFooter.ClickAsync();
+                await readerFooter.ClickAsync(new() { });
             }
             catch (Exception e)
             {
@@ -131,20 +131,21 @@ public class Helper
             return true;
         }
 
-        for (int i = 0; i < 100; i++)
-        {
-            await page.WaitForTimeoutAsync(50);
-            foreach (var img in unCheckImgList)
-            {
-                var prop = img.GetPropertyAsync("complete");
-                unCheckImgList.Remove(img);
-            }
-            if (unCheckImgList.Count == 0)
-            {
-                Console.WriteLine("all img loaded");
-                return true;
-            }
-        }
+        await page.WaitForTimeoutAsync(unCheckedImg.Count * 50);
+        //for (int i = 0; i < 100; i++)
+        //{
+        //    await page.WaitForTimeoutAsync(50);
+        //    foreach (var img in unCheckImgList)
+        //    {
+        //        var prop = img.GetPropertyAsync("complete");
+        //        unCheckImgList.Remove(img);
+        //    }
+        //    if (unCheckImgList.Count == 0)
+        //    {
+        //        Console.WriteLine("all img loaded");
+        //        return true;
+        //    }
+        //}
 
         Console.WriteLine("all img not loaded");
         return false;
@@ -152,16 +153,16 @@ public class Helper
 
     public async Task ScreenShotFullContent(string pngName)
     {
-        var renderTargetContainer = page.Locator(".renderTargetContainer");
-        int height = Convert.ToInt32(await renderTargetContainer.GetAttributeAsync("offsetHeight"));
-        height += Convert.ToInt32(await renderTargetContainer.GetAttributeAsync("offsetTop"));
-        var width = await page.EvaluateAsync<int>("window.outerWidth");
-        await page.SetViewportSizeAsync(width, height);
-        await page.WaitForTimeoutAsync(1000);
+        //var renderTargetContainer = page.Locator(".renderTargetContainer");
+        //int height = Convert.ToInt32(await renderTargetContainer.GetAttributeAsync("offsetHeight"));
+        //height += Convert.ToInt32(await renderTargetContainer.GetAttributeAsync("offsetTop"));
+        //var width = await page.EvaluateAsync<int>("window.outerWidth");
+        //await page.SetViewportSizeAsync(width, height);
+        //await page.WaitForTimeoutAsync(1000);
 
         var content = await page.WaitForSelectorAsync(".app_content", new() { Timeout = 1000 * 3 });
         Directory.CreateDirectory(Path.GetDirectoryName($"{pngName}.png"));
-        await content.ScreenshotAsync(new() {  Path = $"{pngName}.png" });
+        await content.ScreenshotAsync(new() { Path = $"{pngName}.png" });
     }
 
     public void ConvertImgToPdf(string fileName, List<string> imgList)
