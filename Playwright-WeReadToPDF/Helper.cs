@@ -25,11 +25,12 @@ public class Helper
 
             var waitTurns = 15;
 
-
+            Console.WriteLine("start download qrcode...");
             var qrCodePath = $"{_rootFile}/QrCode.png";
             var qrCodeContainer = await page.WaitForSelectorAsync(".login_dialog_qrcode>img");
             await qrCodeContainer.ScreenshotAsync(new() { Path = qrCodePath });
 
+            Console.WriteLine("download succeess please scan qdcode to log in");
             // Start a new process that runs the default image viewer application
             Process.Start(new ProcessStartInfo { FileName = Path.GetFullPath(qrCodePath), UseShellExecute = true });
 
@@ -84,7 +85,7 @@ public class Helper
             var pngName = $"{bookName.Trim()}/{chapter.Trim()}_{pageIndex}";
 
             await page.WaitForLoadStateAsync(LoadState.Load);
-            // await ScreenShotFullContent(pngName);
+            await ScreenShotFullContent(pngName);
             pngNameList.Add(pngName);
             Console.WriteLine($"save chapter scan {pngName}");
 
@@ -170,11 +171,15 @@ public class Helper
 
     public async Task ScreenShotFullContent(string pngName)
     {
-        await page.SetViewportSizeAsync(await page.EvaluateAsync<int>("document.querySelector('.app_content').offsetWidth"),
-            await page.EvaluateAsync<int>("document.querySelector('.app_content').offsetHeight")
-        );
+        var width = await page.EvaluateAsync<int>("document.querySelector('.app_content').offsetWidth");
+        var height = await page.EvaluateAsync<int>("document.querySelector('.readerFooter_button').offsetTop");
+        if (height > 10000)
+        {
+            await page.WaitForTimeoutAsync(1000);
+        }
+        await page.SetViewportSizeAsync(width, height);
         Directory.CreateDirectory(Path.GetDirectoryName($"{pngName}.png"));
-        await page.ScreenshotAsync(new() { Path = $"{pngName}.png", FullPage = true });
+        await page.ScreenshotAsync(new() { Path = $"{pngName}.png" });
     }
 
     public void ConvertImgToPdf(string fileName, List<string> imgList)
