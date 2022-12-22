@@ -1,11 +1,13 @@
 ﻿global using Microsoft.Playwright;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
+using System.Diagnostics;
 
 namespace Playwright_WeReadToPDF;
 public class Helper
 {
     private readonly IPage page;
+    private readonly string _rootFile = "wrd-temp";
 
     public Helper(IPage page)
     {
@@ -22,6 +24,15 @@ public class Helper
             await loginBtn?.ClickAsync();
 
             var waitTurns = 15;
+
+
+            var qrCodePath = $"{_rootFile}/QrCode.png";
+            var qrCodeContainer = await page.WaitForSelectorAsync(".login_dialog_qrcode>img");
+            await qrCodeContainer.ScreenshotAsync(new() { Path = qrCodePath });
+
+            // Start a new process that runs the default image viewer application
+            Process.Start(new ProcessStartInfo { FileName = Path.GetFullPath(qrCodePath), UseShellExecute = true });
+
             for (int i = 0; i < waitTurns; i++)
             {
                 Console.WriteLine($"Wait for QRCode Scan...{i}/{waitTurns}turns");
@@ -72,8 +83,8 @@ public class Helper
 
             var pngName = $"{bookName.Trim()}/{chapter.Trim()}_{pageIndex}";
 
-            await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
-            await ScreenShotFullContent(pngName);
+            await page.WaitForLoadStateAsync(LoadState.Load);
+            // await ScreenShotFullContent(pngName);
             pngNameList.Add(pngName);
             Console.WriteLine($"save chapter scan {pngName}");
 
@@ -159,8 +170,11 @@ public class Helper
 
     public async Task ScreenShotFullContent(string pngName)
     {
+        await page.SetViewportSizeAsync(await page.EvaluateAsync<int>("document.querySelector('.app_content').offsetWidth"),
+            await page.EvaluateAsync<int>("document.querySelector('.app_content').offsetHeight")
+        );
         Directory.CreateDirectory(Path.GetDirectoryName($"{pngName}.png"));
-        await page.ScreenshotAsync(new() { Path = $"{pngName}.png" , FullPage = true});
+        await page.ScreenshotAsync(new() { Path = $"{pngName}.png", FullPage = true });
     }
 
     public void ConvertImgToPdf(string fileName, List<string> imgList)
@@ -171,10 +185,9 @@ public class Helper
 
         foreach (var img in imgList)
         {
-            var image = Image.GetInstance(img);
+            var image = Image.GetInstance($"{img}.png");
             document.Add(image);
         }
-
         document.Close();
     }
 }
