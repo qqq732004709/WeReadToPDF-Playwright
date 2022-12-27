@@ -171,8 +171,12 @@ public class Helper
 
     public async Task ScreenShotFullContent(string pngName)
     {
-        var width = await page.EvaluateAsync<int>("document.querySelector('.app_content').offsetWidth");
-        var height = await page.EvaluateAsync<int>("document.querySelector('.readerFooter_button').offsetTop");
+        var width = await page.EvaluateAsync<int>("window.outerWidth");
+        var height = await page.EvaluateAsync<int>(@"()=>{
+            var top = document.querySelector('.renderTargetContainer').offsetTop;
+            var height = document.querySelector('.renderTargetContainer').offsetHeight;
+            return top + height;
+        }");
         if (height > 10000)
         {
             await page.WaitForTimeoutAsync(1000);

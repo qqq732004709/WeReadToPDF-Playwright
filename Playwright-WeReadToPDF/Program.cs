@@ -6,5 +6,5 @@ var page = await browser.NewPageAsync();
 
 var helper = new Helper(page);
 await helper.Login();
-await helper.SaveAsPdf("https://weread.qq.com/web/reader/a3d3227071db5702a3d9c37k341323f021e34173cb3824c");
+await helper.SaveAsPdf("https://weread.qq.com/web/reader/3da32b505dd9f43da9a1aca");
 await browser.CloseAsync();
